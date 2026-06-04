@@ -1,8 +1,11 @@
-#!/usr/bin/env python3
 from flask import Flask, request, jsonify
-import os, json, hmac, hashlib
+import os
+import json
+import hmac
+import hashlib
 
 app = Flask(__name__)
+
 SECRET_KEY = os.environ.get('LEVIATHAN_SECRET', 'leviathan_test_secret_2026').encode()
 
 def verify_signature(payload, signature):
@@ -22,6 +25,10 @@ def relay():
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify({"status": "alive"})
+
+@app.route('/')
+def root():
+    return jsonify({"status": "alive", "message": "利維坦王室信使已甦醒"})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000)
