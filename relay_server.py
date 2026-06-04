@@ -36,6 +36,36 @@ def root():
         },
         "message": "王令已達，信使待命"
     })
+# --- Telegram 設定 ---
+TELEGRAM_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+RENDER_URL = os.environ.get('RENDER_EXTERNAL_URL', 'https://leviathan-relay.onrender.com')
 
+def send_telegram_message(chat_id, text):
+    if not TELEGRAM_TOKEN:
+        return
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    try:
+        import requests
+        requests.post(url, json={'chat_id': chat_id, 'text': text}, timeout=3)
+    except Exception as e:
+        print(f"傳送失敗: {e}")
+
+@app.route('/webhook', methods=['POST'])
+def telegram_webhook():
+    update = request.get_json()
+    if not update or 'message' not in update:
+        return 'OK', 200
+    
+    chat_id = update['message']['chat']['id']
+    user_text = update['message'].get('text', '')
+    
+    if user_text.startswith('/cmd '):
+        command = user_text[5:]
+        response_text = f"✨ 王令已收到：{command}\n正在傳達給王權之手..."
+    else:
+        response_text = "⚡ 歡迎蒞臨利維坦王國。\n請輸入 /cmd 你的指令 來發號施令。"
+    
+    send_telegram_message(chat_id, response_text)
+    return 'OK', 200
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000)
