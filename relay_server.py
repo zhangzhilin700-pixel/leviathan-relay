@@ -10,7 +10,14 @@ app = Flask(__name__)
 
 # --- 環境變數設定 ---
 SECRET_KEY = os.environ.get('LEVIATHAN_SECRET', 'leviathan_test_secret_2026').encode()
-TELEGRAM_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+# 從 Secret File 讀取 Telegram Token
+try:
+    with open('/etc/secrets/telegram_token.txt', 'r') as f:
+        TELEGRAM_TOKEN = f.read().strip()
+        print(f"📋 已從 Secret File 讀取 Token，長度: {len(TELEGRAM_TOKEN)}")
+except Exception as e:
+    TELEGRAM_TOKEN = ''
+    print(f"❌ 無法讀取 Secret File: {e}")
 
 # --- 啟動檢查（寫入 Logs）---
 print("=" * 50)
