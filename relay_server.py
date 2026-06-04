@@ -25,7 +25,17 @@ def relay():
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify({"status": "alive"})
-
+@app.route('/')
+def root():
+    return jsonify({
+        "service": "利維坦王室信使",
+        "status": "alive",
+        "endpoints": {
+            "health": "/health",
+            "relay": "/api/relay (POST)"
+        },
+        "message": "王令已達，信使待命"
+    })
 @app.route('/')
 def root():
     return jsonify({"status": "alive", "message": "利維坦王室信使已甦醒"})
