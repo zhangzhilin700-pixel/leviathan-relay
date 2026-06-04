@@ -36,9 +36,6 @@ def root():
         },
         "message": "王令已達，信使待命"
     })
-@app.route('/')
-def root():
-    return jsonify({"status": "alive", "message": "利維坦王室信使已甦醒"})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000)
