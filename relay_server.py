@@ -75,7 +75,7 @@ def telegram_webhook():
     command = user_text[5:]
     
     if user_text.startswith('/cmd '):
-    command = user_text[5:] 
+    command = user_text[5:]	 
 
     # 處理 svg2png 王令
     if command.startswith("svg2png "):
