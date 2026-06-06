@@ -8,53 +8,33 @@ import threading
 
 app = Flask(__name__)
 
-# --- 環境變數設定 ---
 SECRET_KEY = os.environ.get('LEVIATHAN_SECRET', 'leviathan_test_secret_2026').encode()
-# 從 Secret File 讀取 Telegram Token
-try:
-    with open('/etc/secrets/telegram_token.txt', 'r') as f:
-        TELEGRAM_TOKEN = f.read().strip()
-        print(f"📋 已從 Secret File 讀取 Token，長度: {len(TELEGRAM_TOKEN)}")
-except Exception as e:
-    TELEGRAM_TOKEN = ''
-    print(f"❌ 無法讀取 Secret File: {e}")
+TELEGRAM_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')
 
-# --- 啟動檢查（寫入 Logs）---
 print("=" * 50)
 print("🚀 利維坦王室信使啟動中...")
 print(f"📋 TELEGRAM_TOKEN 已設定: {'是' if TELEGRAM_TOKEN else '否'}")
-print(f"📋 SECRET_KEY 已設定: {'是' if SECRET_KEY else '否'}")
 print("=" * 50)
 
-# --- 安全驗證 ---
 def verify_signature(payload, signature):
     message = json.dumps(payload, sort_keys=True)
     expected = hmac.new(SECRET_KEY, message.encode(), hashlib.sha256).hexdigest()
     return hmac.compare_digest(expected, signature)
 
-# --- 非同步處理函式 ---
 def async_send_message(chat_id, text):
     if not TELEGRAM_TOKEN:
-        print("❌ TELEGRAM_TOKEN 是空的，無法發送訊息")
+        print("❌ TELEGRAM_TOKEN 是空的")
         return
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     try:
-        resp = requests.post(url, json={'chat_id': chat_id, 'text': text}, timeout=5)
-        if resp.status_code == 200:
-            print(f"✅ 訊息已發送給 {chat_id}")
-        else:
-            print(f"❌ 發送失敗: {resp.status_code} - {resp.text}")
+        requests.post(url, json={'chat_id': chat_id, 'text': text}, timeout=5)
+        print(f"✅ 訊息已發送給 {chat_id}")
     except Exception as e:
-        print(f"❌ 例外: {e}")
+        print(f"❌ 發送失敗: {e}")
 
-# --- 路由配置 ---
 @app.route('/')
 def root():
-    return jsonify({
-        "status": "alive",
-        "service": "利維坦王室信使",
-        "version": "1.0.0"
-    })
+    return jsonify({"status": "alive", "service": "利維坦王室信使"})
 
 @app.route('/health', methods=['GET'])
 def health():
@@ -72,22 +52,20 @@ def telegram_webhook():
     print(f"📨 來自 {chat_id}: {user_text}")
     
     if user_text.startswith('/cmd '):
-    command = user_text[5:]
-    
-    if user_text.startswith('/cmd '):
-    command = user_text[5:]	 
-
-    # 處理 svg2png 王令
-    if command.startswith("svg2png "):
-        svg_file = command.split(" ")[1]
-        import subprocess
-        result = subprocess.run(["inkscape", svg_file, "--export-filename=" + svg_file.replace(".svg", ".png")])
-        if result.returncode == 0:
-            response_text = f"🎨 已將 {svg_file} 轉換為 PNG"
+        command = user_text[5:]
+        
+        if command.startswith("svg2png "):
+            svg_file = command.split(" ")[1]
+            import subprocess
+            result = subprocess.run(["inkscape", svg_file, "--export-filename=" + svg_file.replace(".svg", ".png")])
+            if result.returncode == 0:
+                response_text = f"🎨 已將 {svg_file} 轉換為 PNG"
+            else:
+                response_text = f"❌ 轉換失敗，請檢查檔案路徑：{svg_file}"
         else:
-            response_text = f"❌ 轉換失敗，請檢查檔案路徑：{svg_file}"
+            response_text = f"✨ 王令已收到：{command}\n利維坦正在執行內部演算..."
     else:
-        response_text = f"✨ 王令已收到：{command}\n利維坦正在執行內部演算..."
+        response_text = "⚡ 利維坦王國信使系統已上線。\n請輸入 /cmd [指令] 來啟動機體。"
     
     threading.Thread(target=async_send_message, args=(chat_id, response_text)).start()
     return 'OK', 200
