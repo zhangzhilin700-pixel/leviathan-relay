@@ -53,30 +53,7 @@ def telegram_webhook():
     
     if user_text.startswith('/cmd '):
         command = user_text[5:]
-    
-    # 2D 設計工匠：SVG 轉 PNG
-    if command.startswith("svg2png "):
-        svg_file = command.split(" ")[1]
-        import subprocess
-        result = subprocess.run(["inkscape", svg_file, "--export-filename=" + svg_file.replace(".svg", ".png")])
-        if result.returncode == 0:
-            response_text = f"🎨 已將 {svg_file} 轉換為 PNG"
-        else:
-            response_text = f"❌ 轉換失敗，請檢查檔案路徑：{svg_file}"
-    
-    # 文件工匠：ODT/DOCX 轉 PDF
-    elif command.startswith("doc2pdf "):
-        doc_file = command.split(" ")[1]
-        import subprocess
-        result = subprocess.run(["libreoffice", "--headless", "--convert-to", "pdf", doc_file])
-        if result.returncode == 0:
-            response_text = f"📄 已將 {doc_file} 轉換為 PDF"
-        else:
-            response_text = f"❌ 轉換失敗，請檢查檔案路徑：{doc_file}"
-    
-    # 通用王令
-    else:
-        response_text = f"✨ 王令已收到：{command}\n利維坦正在執行內部演算..."        
+        
         if command.startswith("svg2png "):
             svg_file = command.split(" ")[1]
             import subprocess
@@ -85,6 +62,14 @@ def telegram_webhook():
                 response_text = f"🎨 已將 {svg_file} 轉換為 PNG"
             else:
                 response_text = f"❌ 轉換失敗，請檢查檔案路徑：{svg_file}"
+        elif command.startswith("doc2pdf "):
+            doc_file = command.split(" ")[1]
+            import subprocess
+            result = subprocess.run(["libreoffice", "--headless", "--convert-to", "pdf", doc_file])
+            if result.returncode == 0:
+                response_text = f"📄 已將 {doc_file} 轉換為 PDF"
+            else:
+                response_text = f"❌ 轉換失敗，請檢查檔案路徑：{doc_file}"
         else:
             response_text = f"✨ 王令已收到：{command}\n利維坦正在執行內部演算..."
     else:
