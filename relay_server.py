@@ -72,10 +72,19 @@ def telegram_webhook():
     print(f"📨 來自 {chat_id}: {user_text}")
     
     if user_text.startswith('/cmd '):
-        command = user_text[5:]
-        response_text = f"✨ 王令已收到：{command}\n利維坦正在執行內部演算..."
+    command = user_text[5:]
+    
+    # 處理 svg2png 王令
+    if command.startswith("svg2png "):
+        svg_file = command.split(" ")[1]
+        import subprocess
+        result = subprocess.run(["inkscape", svg_file, "--export-filename=" + svg_file.replace(".svg", ".png")])
+        if result.returncode == 0:
+            response_text = f"🎨 已將 {svg_file} 轉換為 PNG"
+        else:
+            response_text = f"❌ 轉換失敗，請檢查檔案路徑：{svg_file}"
     else:
-        response_text = "⚡ 利維坦王國信使系統已上線。\n請輸入 /cmd [指令] 來啟動機體。"
+        response_text = f"✨ 王令已收到：{command}\n利維坦正在執行內部演算..."
     
     threading.Thread(target=async_send_message, args=(chat_id, response_text)).start()
     return 'OK', 200
