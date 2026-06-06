@@ -48,6 +48,15 @@ def root():
 def health():
     return jsonify({"status": "alive"})
 
+@app.route('/api/relay', methods=['POST'])
+def relay():
+    data = request.get_json()
+    if not data or 'payload' not in data or 'signature' not in data:
+        return jsonify({"status": "error"}), 400
+    if not verify_signature(data['payload'], data['signature']):
+        return jsonify({"status": "unauthorized"}), 401
+    return jsonify({"status": "success", "echo": data['payload']})
+
 @app.route('/webhook', methods=['POST'])
 def telegram_webhook():
     print("🔔 Webhook 收到請求")
@@ -61,39 +70,12 @@ def telegram_webhook():
     
     if user_text.startswith('/cmd '):
         command = user_text[5:]
-        
-        if command.startswith("svg2png "):
-            svg_file = command.split(" ")[1]
-            import subprocess
-            result = subprocess.run(["inkscape", svg_file, "--export-filename=" + svg_file.replace(".svg", ".png")])
-            if result.returncode == 0:
-                response_text = f"🎨 已將 {svg_file} 轉換為 PNG"
-            else:
-                response_text = f"❌ 轉換失敗，請檢查檔案路徑：{svg_file}"
-        elif command.startswith("doc2pdf "):
-            doc_file = command.split(" ")[1]
-            import subprocess
-            result = subprocess.run(["libreoffice", "--headless", "--convert-to", "pdf", doc_file])
-            if result.returncode == 0:
-                response_text = f"📄 已將 {doc_file} 轉換為 PDF"
-            else:
-                response_text = f"❌ 轉換失敗，請檢查檔案路徑：{doc_file}"
-        else:
-            response_text = f"✨ 王令已收到：{command}\n利維坦正在執行內部演算..."
+        response_text = f"✨ 王令已收到：{command}\n利維坦正在執行內部演算..."
     else:
         response_text = "⚡ 利維坦王國信使系統已上線。\n請輸入 /cmd [指令] 來啟動機體。"
     
     threading.Thread(target=async_send_message, args=(chat_id, response_text)).start()
     return 'OK', 200
-
-@app.route('/api/relay', methods=['POST'])
-def relay():
-    data = request.get_json()
-    if not data or 'payload' not in data or 'signature' not in data:
-        return jsonify({"status": "error"}), 400
-    if not verify_signature(data['payload'], data['signature']):
-        return jsonify({"status": "unauthorized"}), 401
-    return jsonify({"status": "success", "echo": data['payload']})
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
