@@ -69,3 +69,18 @@ if __name__ == "__main__":
     
 if __name__ == "__main__":
     main()
+
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    update = request.get_json()
+    if not update or 'message' not in update:
+        return "OK", 200
+    chat_id = update['message']['chat']['id']
+    text = update['message'].get('text', '')
+    if text.startswith('/cmd'):
+        import subprocess
+        cmd = text[4:].strip()
+        result = subprocess.run(['/home/wangguo-2026/leviathan.sh', 'tool', cmd], capture_output=True, text=True)
+        reply = result.stdout or "✅ 指令已執行"
+        send_message(chat_id, reply)
+    return "OK", 200
