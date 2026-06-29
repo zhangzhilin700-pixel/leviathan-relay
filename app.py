@@ -45,5 +45,27 @@ def main():
             print(f"⚠️ 運行錯誤: {e}")
         time.sleep(1)
 
+import threading
+from flask import Flask
+
+# 初始化 Flask 應用
+app_web = Flask(__name__)
+
+@app_web.route('/')
+def health_check():
+    return "利維坦王國信使：狀態正常 (Online)", 200
+
+def run_web():
+    # Render 要求的端口通常在環境變數 PORT 中
+    import os
+    port = int(os.environ.get("PORT", 10000))
+    app_web.run(host='0.0.0.0', port=port)
+
+if __name__ == "__main__":
+    # 1. 啟動 Telegram 輪詢 (維持原有的 main 函數)
+    threading.Thread(target=main, daemon=True).start()
+    # 2. 啟動 Web 服務以滿足 Render 部署要求
+    run_web()
+    
 if __name__ == "__main__":
     main()
