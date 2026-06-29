@@ -1,57 +1,49 @@
 #!/usr/bin/env python3
-"""
-利維坦軍團 · 戰情室（Gradio 公開版）
-僅顯示運算邏輯與公開數據，不含司令身份與敏感日誌
-"""
-
-import gradio as gr
+import requests
 import subprocess
-import re
-import json
-from datetime import datetime
+import time
 
-def get_system_status():
+# 請確保此處 Token 正確
+TOKEN = "8873521783:AAGkCViluau5d6hdkDwfe683CjThGX1HKcc"
+URL = f"https://api.telegram.org/bot{TOKEN}/"
+LAST_UPDATE = 0
+
+def send_message(chat_id, text):
     try:
-        result = subprocess.run(["ollama", "list"], capture_output=True, text=True)
-        chat_status = "🟢 在線" if "leviathan-chat" in result.stdout else "🔴 離線"
-        pure_status = "🟢 在線" if "leviathan-pure" in result.stdout else "🔴 離線"
-        return chat_status, pure_status
-    except:
-        return "⚪ 無法偵測", "⚪ 無法偵測"
+        requests.post(URL + "sendMessage", json={"chat_id": chat_id, "text": text})
+    except Exception as e:
+        print(f"❌ 發送失敗: {e}")
 
-def fetch_report_data():
-    result = subprocess.run(["python", "daily_report.py"], capture_output=True, text=True)
-    lines = result.stdout.split('\n')
-    projects = []
-    for line in lines:
-        if "✅" in line:
-            match = re.search(r'✅ (\S+).*?(\d+\.?\d*)', line)
-            if match:
-                projects.append(f"{match.group(1)}：預估需 {match.group(2)} 天")
-    return "\n".join(projects) if projects else "無專案數據"
-
-def dashboard_view():
-    chat, pure = get_system_status()
-    projects = fetch_report_data()
-    return f"""
-    🐋 利維坦軍團 · 公開戰情室
-
-    🗣️ 聊天港: {chat}
-    💻 算力港: {pure}
-
-    📊 專案進度:
-    {projects}
-
-    更新時間: {datetime.now().isoformat()}
-    """
-
-iface = gr.Interface(
-    fn=dashboard_view,
-    inputs=[],
-    outputs="text",
-    title="利維坦軍團 · 公開戰情室",
-    description="僅顯示運算邏輯與公開數據，不含敏感資訊"
-)
+def main():
+    global LAST_UPDATE
+    print("🐋 利維坦王國信使啟動，等待指令...")
+    while True:
+        try:
+            resp = requests.get(URL + "getUpdates", params={"offset": LAST_UPDATE + 1, "timeout": 30})
+            data = resp.json()
+            for update in data.get("result", []):
+                LAST_UPDATE = update["update_id"]
+                msg = update.get("message")
+                if msg and "text" in msg:
+                    chat_id = msg["chat"]["id"]
+                    text = msg["text"]
+                    print(f"📡 收到指令: {text}")
+                    
+                    # 指令分發邏輯
+                    if text.startswith("/cmd"):
+                        cmd_args = text[4:].strip().split(" ", 1)
+                        if len(cmd_args) < 2:
+                            send_message(chat_id, "⚠️ 格式錯誤。請使用: /cmd [algo|tool] [參數]")
+                            continue
+                        
+                        mode, arg = cmd_args[0], cmd_args[1]
+                        # 呼叫統籌腳本
+                        result = subprocess.run(["/home/wangguo-2026/leviathan_core/leviathan.sh", mode, arg], capture_output=True, text=True)
+                        reply = result.stdout.strip() or "✅ 指令執行完畢，無回傳輸出。"
+                        send_message(chat_id, f"🐋 利維坦回報:\n{reply}")
+        except Exception as e:
+            print(f"⚠️ 運行錯誤: {e}")
+        time.sleep(1)
 
 if __name__ == "__main__":
-    iface.launch()
+    main()
