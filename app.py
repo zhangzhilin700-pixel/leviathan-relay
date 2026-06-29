@@ -1,22 +1,30 @@
-#!/usr/bin/env python3
+import threading
+import time
 import requests
 import subprocess
-import time
+import os
+from flask import Flask
 
-# 請確保此處 Token 正確
+# 1. 基礎設定
 TOKEN = "8873521783:AAGkCViluau5d6hdkDwfe683CjThGX1HKcc"
 URL = f"https://api.telegram.org/bot{TOKEN}/"
 LAST_UPDATE = 0
+app_web = Flask(__name__)
 
+# 2. 核心通訊功能
 def send_message(chat_id, text):
     try:
         requests.post(URL + "sendMessage", json={"chat_id": chat_id, "text": text})
     except Exception as e:
         print(f"❌ 發送失敗: {e}")
 
+# 3. 輪詢主程式 (Polling)
 def main():
     global LAST_UPDATE
     print("🐋 利維坦王國信使啟動，等待指令...")
+    # 強制清除 Webhook，奪回控制權
+    requests.get(URL + "deleteWebhook")
+    
     while True:
         try:
             resp = requests.get(URL + "getUpdates", params={"offset": LAST_UPDATE + 1, "timeout": 30})
@@ -27,82 +35,19 @@ def main():
                 if msg and "text" in msg:
                     chat_id = msg["chat"]["id"]
                     text = msg["text"]
-                    print(f"📡 收到指令: {text}")
-                    
-                    # 指令分發邏輯
                     if text.startswith("/cmd"):
-                        cmd_args = text[4:].strip().split(" ", 1)
-                        if len(cmd_args) < 2:
-                            send_message(chat_id, "⚠️ 格式錯誤。請使用: /cmd [algo|tool] [參數]")
-                            continue
-                        
-                        mode, arg = cmd_args[0], cmd_args[1]
-                        # 呼叫統籌腳本
-                        result = subprocess.run(["/home/wangguo-2026/leviathan_core/leviathan.sh", mode, arg], capture_output=True, text=True)
-                        reply = result.stdout.strip() or "✅ 指令執行完畢，無回傳輸出。"
-                        send_message(chat_id, f"🐋 利維坦回報:\n{reply}")
+                        # 執行指令邏輯
+                        result = subprocess.run(["./leviathan.sh", "tool", text[4:].strip()], capture_output=True, text=True)
+                        send_message(chat_id, result.stdout.strip() or "✅ 指令執行完畢")
         except Exception as e:
             print(f"⚠️ 運行錯誤: {e}")
         time.sleep(1)
 
-import threading
-from flask import Flask
-
-# 初始化 Flask 應用
-app_web = Flask(__name__)
-
+# 4. Web 監聽器 (滿足 Render 需求)
 @app_web.route('/')
-def health_check():
-    return "利維坦王國信使：狀態正常 (Online)", 200
-
-def run_web():
-    # Render 要求的端口通常在環境變數 PORT 中
-    import os
-    port = int(os.environ.get("PORT", 10000))
-    app_web.run(host='0.0.0.0', port=port)
-
-if __name__ == "__main__":
-    # 1. 啟動 Telegram 輪詢 (維持原有的 main 函數)
-    threading.Thread(target=main, daemon=True).start()
-    # 2. 啟動 Web 服務以滿足 Render 部署要求
-    run_web()
-    
-if __name__ == "__main__":
-    main()
-
-@app.route('/webhook', methods=['POST'])
-def webhook():
-    update = request.get_json()
-    if not update or 'message' not in update:
-        return "OK", 200
-    chat_id = update['message']['chat']['id']
-    text = update['message'].get('text', '')
-    if text.startswith('/cmd'):
-        import subprocess
-        cmd = text[4:].strip()
-        result = subprocess.run(['/home/wangguo-2026/leviathan.sh', 'tool', cmd], capture_output=True, text=True)
-        reply = result.stdout or "✅ 指令已執行"
-        send_message(chat_id, reply)
-    return "OK", 200
-    
-    from flask import Flask, request, jsonify
-
-app = Flask(__name__)
-
-# --- 接收 Telegram 的 Webhook 請求 ---
-@app.route('/webhook', methods=['POST'])
-def webhook():
-    if request.method == 'POST':
-        # 這裡會接收到 Telegram 發送的 JSON 數據
-        update = request.get_json()
-        print(f"📡 收到 Webhook 數據: {update}")
-        # 將數據送入您現有的處理函數 (例如 handle_update 或 main)
-        # handle_update(update) 
-        return "OK", 200
-
-@app.route('/')
 def home():
-    return "利維坦王國信使：在線 (Webhook 模式已連接)"
+    return "利維坦王國信使：Polling 模式運作中", 200
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=10000)
+    threading.Thread(target=main, daemon=True).start()
+    app_web.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
