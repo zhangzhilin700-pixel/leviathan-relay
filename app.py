@@ -84,3 +84,25 @@ def webhook():
         reply = result.stdout or "✅ 指令已執行"
         send_message(chat_id, reply)
     return "OK", 200
+    
+    from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+# --- 接收 Telegram 的 Webhook 請求 ---
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    if request.method == 'POST':
+        # 這裡會接收到 Telegram 發送的 JSON 數據
+        update = request.get_json()
+        print(f"📡 收到 Webhook 數據: {update}")
+        # 將數據送入您現有的處理函數 (例如 handle_update 或 main)
+        # handle_update(update) 
+        return "OK", 200
+
+@app.route('/')
+def home():
+    return "利維坦王國信使：在線 (Webhook 模式已連接)"
+
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=10000)
