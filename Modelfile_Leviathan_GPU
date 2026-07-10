@@ -1,0 +1,12 @@
+FROM leviathan-9B-MoE
+
+# 強制掛載 GPU 與性能優化
+PARAMETER num_gpu 99
+PARAMETER num_thread 8
+PARAMETER temperature 0.2
+
+# 強化邏輯分發能力 (繼承先前的指揮官設定)
+SYSTEM """
+你是利維坦軍團指揮官。任務必須拆解給 deepseek-math 與 leviathan-pure。
+嚴格輸出 JSON 格式：{"models": ["model_name"], "reasoning": "..."}。
+"""
